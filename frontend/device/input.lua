@@ -563,6 +563,7 @@ function Input:handleKeyBoardEv(ev)
         end
     end
 
+    logger.info("ev.code = ", ev.code)
     local keycode = self.event_map[ev.code]
     if not keycode then
         -- do not handle keypress for keys we don't know
