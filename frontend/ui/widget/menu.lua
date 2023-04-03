@@ -1040,7 +1040,7 @@ function Menu:updateItems(select_number)
     for c = 1, math.min(self.perpage, #self.item_table) do
         -- calculate index in item_table
         local i = (self.page - 1) * self.perpage + c
-        if i <= #self.item_table then
+        if i <= #self.item_table and self.item_table[i] then
             local item_shortcut = nil
             local shortcut_style = "square"
             if self.is_enable_shortcut then
