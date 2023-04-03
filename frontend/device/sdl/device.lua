@@ -3,7 +3,9 @@ local Generic = require("device/generic/device")
 local SDL = require("ffi/SDL2_0")
 local ffi = require("ffi")
 local logger = require("logger")
+local util = require("util")
 local time = require("ui/time")
+local JSON = require("json")
 
 -- SDL computes WM_CLASS on X11/Wayland based on process's binary name.
 -- Some desktop environments rely on WM_CLASS to name the app and/or to assign the proper icon.
@@ -65,6 +67,7 @@ local Device = Generic:extend{
     isSDL = yes,
     home_dir = os.getenv("XDG_DOCUMENTS_DIR") or os.getenv("HOME"),
     hasBattery = SDL.getPowerInfo,
+    powerDBackend = require("device/sdl/powerd"),
     hasKeyboard = yes,
     hasKeys = yes,
     hasDPad = yes,
@@ -119,6 +122,30 @@ local Desktop = Device:extend{
     hasExitOptions = notOSX,
 }
 
+local PineNote = Device:extend{
+    model = "PineNote",
+    hasEinkScreen = yes,
+    hasColorScreen = no,
+    needsScreenRefreshAfterResume = yes,
+    isDesktop = yes,
+    -- NOTE: uses SDL.getPowerDevice()
+    hasBattery = yes,
+    hasFrontlight = yes,
+    hasNaturalLight = yes,
+    hasNaturalLightApi = yes,
+    powerDBackend = require("device/sdl/sdllightpowerd"),
+    lightPowerDConfig = {
+        warm = "sysfs/backlight/backlight_warm",
+        cool = "sysfs/backlight/backlight_cool",
+    },
+    -- TODO: actually test/implement those
+    canRestart = yes,
+    canSuspend = yes,
+    canReboot = yes,
+    canPowerOff = yes,
+    -- NOTE: wifi not = yes, as AFAICT it can't manage the networks.
+}
+
 local Emulator = Device:extend{
     model = "Emulator",
     isEmulator = yes,
@@ -170,7 +197,7 @@ function Device:init()
         y = self.window.top,
         is_always_portrait = self.isAlwaysPortrait(),
     }
-    self.powerd = require("device/sdl/powerd"):new{device = self}
+    self.powerd = self.powerDBackend:new({device = self})
 
     local ok, re = pcall(self.screen.setWindowIcon, self.screen, "resources/koreader.png")
     if not ok then logger.warn(re) end
@@ -418,8 +445,42 @@ end
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
 
 -------------- device probe ------------
+local model = nil
+
+-- Allow overriding the model
+if os.getenv("KO_MODEL") then
+    model = os.getenv("KO_MODEL")
+end
+
+logger.info("SDL device: Looking for a more specific model...")
+
+-- Linux ARM devices are likely to be using Device Tree.
+if model then
+    logger.info("Using KO_MODEL as model...")
+end
+
+if not model and util.fileExists("/proc/device-tree/model") then
+    logger.info("Using device-tree for model detection...")
+    local file, err = io.open("/proc/device-tree/model", "r")
+    if file then
+        -- /proc/device-tree entries end with a NUL byte.
+        -- We need to strip them for easier comparison later.
+        model = file:read("*all"):gsub("%z", "")
+    else
+        logger.err("SDL device: failed to open /proc/device-tree/model", err)
+    end
+end
+
+-- Using JSON.encode here to ensure any control characters gets sussed-out.
+logger.info("  model:", JSON.encode(model))
+
+-- TODO: review AppImage/UbuntuTouch such that they compose on top of the selected model.
+--       the distribution method shouldn't affect the model detection heuristics.
+-- XXX: would AppImage or UbuntuTouch sandbox away the required files?
 if os.getenv("APPIMAGE") then
     return AppImage
+elseif model == "Pine64 PineNote" then
+    return PineNote
 elseif os.getenv("KO_MULTIUSER") then
     return Desktop
 elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
