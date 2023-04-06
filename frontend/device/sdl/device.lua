@@ -471,6 +471,10 @@ if not model and util.fileExists("/proc/device-tree/model") then
     end
 end
 
+if model == nil then
+	model = "(generic)"
+end
+
 -- Using JSON.encode here to ensure any control characters gets sussed-out.
 logger.info("  model:", JSON.encode(model))
 
@@ -479,7 +483,7 @@ logger.info("  model:", JSON.encode(model))
 -- XXX: would AppImage or UbuntuTouch sandbox away the required files?
 if os.getenv("APPIMAGE") then
     return AppImage
-elseif model == "Pine64 PineNote" then
+elseif model:match("^Pine64 PineNote") then
     return PineNote
 elseif os.getenv("KO_MULTIUSER") then
     return Desktop
