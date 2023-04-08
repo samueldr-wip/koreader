@@ -293,6 +293,7 @@ function SdlDevice:toggleFullscreen()
     end
 end
 
+-- FIXME: move into Emulator?
 function SdlDevice:setEventHandlers(UIManager)
     if not self:canSuspend() then
         -- If we can't suspend, we have no business even trying to, as we may not have overloaded `SdlDevice:simulateResume`.
@@ -359,6 +360,16 @@ end
 
 function Desktop:reboot()
     os.execute("systemctl reboot")
+end
+
+function Desktop:setEventHandlers(UIManager)
+	-- Ensure SdlDevice:setEventHandlers isn't used.
+	Generic.setEventHandlers(self, UIManager)
+	local default_suspend = UIManager.event_handlers.Suspend;
+	UIManager.event_handlers.Suspend = function()
+		default_suspend()
+		self:suspend()
+	end
 end
 
 local PineNote = Desktop:extend{
