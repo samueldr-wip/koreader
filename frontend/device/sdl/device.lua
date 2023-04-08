@@ -62,7 +62,7 @@ local external = require("device/thirdparty"):new{
     end,
 }
 
-local Device = Generic:extend{
+local SdlDevice = Generic:extend{
     model = "SDL",
     isSDL = yes,
     home_dir = os.getenv("XDG_DOCUMENTS_DIR") or os.getenv("HOME"),
@@ -108,21 +108,21 @@ local Device = Generic:extend{
     window = G_reader_settings:readSetting("sdl_window", {}),
 }
 
-local AppImage = Device:extend{
+local AppImage = SdlDevice:extend{
     model = "AppImage",
     hasMultitouch = no,
     hasOTAUpdates = yes,
     isDesktop = yes,
 }
 
-local Desktop = Device:extend{
+local Desktop = SdlDevice:extend{
     model = SDL.getPlatform(),
     isDesktop = yes,
     canRestart = notOSX,
     hasExitOptions = notOSX,
 }
 
-local PineNote = Device:extend{
+local PineNote = SdlDevice:extend{
     model = "PineNote",
     hasEinkScreen = yes,
     hasColorScreen = no,
@@ -146,7 +146,7 @@ local PineNote = Device:extend{
     -- NOTE: wifi not = yes, as AFAICT it can't manage the networks.
 }
 
-local Emulator = Device:extend{
+local Emulator = SdlDevice:extend{
     model = "Emulator",
     isEmulator = yes,
     hasBattery = yes,
@@ -155,7 +155,7 @@ local Emulator = Device:extend{
     hasNaturalLight = yes,
     hasNaturalLightApi = yes,
     hasWifiToggle = yes,
-    -- Not really, Device:reboot & Device:powerOff are not implemented, so we just exit ;).
+    -- Not really, SdlDevice:reboot & SdlDevice:powerOff are not implemented, so we just exit ;).
     canPowerOff = yes,
     canReboot = yes,
     -- NOTE: Via simulateSuspend
@@ -163,13 +163,13 @@ local Emulator = Device:extend{
     canStandby = no,
 }
 
-local UbuntuTouch = Device:extend{
+local UbuntuTouch = SdlDevice:extend{
     model = "UbuntuTouch",
     hasFrontlight = yes,
     isDefaultFullscreen = yes,
 }
 
-function Device:init()
+function SdlDevice:init()
     -- allows to set a viewport via environment variable
     -- syntax is Lua table syntax, e.g. EMULATE_READER_VIEWPORT="{x=10,w=550,y=5,h=790}"
     local viewport = os.getenv("EMULATE_READER_VIEWPORT")
@@ -336,7 +336,7 @@ function Device:init()
     Generic.init(self)
 end
 
-function Device:setDateTime(year, month, day, hour, min, sec)
+function SdlDevice:setDateTime(year, month, day, hour, min, sec)
     if hour == nil or min == nil then return true end
     local command
     if year and month and day then
@@ -352,12 +352,12 @@ function Device:setDateTime(year, month, day, hour, min, sec)
     end
 end
 
-function Device:isAlwaysFullscreen()
+function SdlDevice:isAlwaysFullscreen()
     -- return true on embedded devices, which should default to fullscreen
     return self:isDefaultFullscreen()
 end
 
-function Device:toggleFullscreen()
+function SdlDevice:toggleFullscreen()
     local current_mode = self.fullscreen or self:isDefaultFullscreen()
     local new_mode = not current_mode
     local ok, err = SDL.setWindowFullscreen(new_mode)
@@ -368,9 +368,9 @@ function Device:toggleFullscreen()
     end
 end
 
-function Device:setEventHandlers(UIManager)
+function SdlDevice:setEventHandlers(UIManager)
     if not self:canSuspend() then
-        -- If we can't suspend, we have no business even trying to, as we may not have overloaded `Device:simulateResume`.
+        -- If we can't suspend, we have no business even trying to, as we may not have overloaded `SdlDevice:simulateResume`.
         -- Instead, rely on the Generic Suspend/Resume handlers.
         return
     end
@@ -393,11 +393,11 @@ function Device:setEventHandlers(UIManager)
     end
 end
 
-function Device:initNetworkManager(NetworkMgr)
+function SdlDevice:initNetworkManager(NetworkMgr)
     function NetworkMgr:isWifiOn() return true end
     function NetworkMgr:isConnected()
         -- Pull the default gateway first, so we don't even try to ping anything if there isn't one...
-        local default_gw = Device:getDefaultRoute()
+        local default_gw = SdlDevice:getDefaultRoute()
         if not default_gw then
             return false
         end
