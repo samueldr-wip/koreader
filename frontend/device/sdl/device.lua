@@ -341,6 +341,26 @@ local Desktop = SdlDevice:extend{
     hasExitOptions = notOSX,
 }
 
+-- TODO: systemctl backend for device state
+--   -> remarkable will need a way to call disable-wifi before suspend
+function Desktop:standby(max_duration)
+end
+
+function Desktop:resume()
+end
+
+function Desktop:suspend()
+    os.execute("systemctl suspend")
+end
+
+function Desktop:powerOff()
+    os.execute("systemctl poweroff")
+end
+
+function Desktop:reboot()
+    os.execute("systemctl reboot")
+end
+
 local PineNote = Desktop:extend{
     model = "PineNote",
     hasKeyboard = no,
@@ -358,10 +378,10 @@ local PineNote = Desktop:extend{
         warm = "sysfs/backlight/backlight_warm",
         cool = "sysfs/backlight/backlight_cool",
     },
-    -- TODO: actually test/implement those
     canSuspend = yes,
     canReboot = yes,
     canPowerOff = yes,
+    canStandby = no,
     -- TODO: nmcli NetworkMgr backend
     -- hasWifiToggle = yes,
 }
