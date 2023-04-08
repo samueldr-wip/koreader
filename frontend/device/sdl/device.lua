@@ -108,50 +108,6 @@ local SdlDevice = Generic:extend{
     window = G_reader_settings:readSetting("sdl_window", {}),
 }
 
-local AppImage = SdlDevice:extend{
-    model = "AppImage",
-    hasMultitouch = no,
-    hasOTAUpdates = yes,
-    isDesktop = yes,
-}
-
-local Desktop = SdlDevice:extend{
-    model = SDL.getPlatform(),
-    isDesktop = yes,
-    canRestart = notOSX,
-    hasExitOptions = notOSX,
-}
-
-local PineNote = SdlDevice:extend{
-    model = "PineNote",
-    hasEinkScreen = yes,
-    hasColorScreen = no,
-    needsScreenRefreshAfterResume = yes,
-    isDesktop = yes,
-    -- NOTE: uses SDL.getPowerDevice()
-    hasBattery = yes,
-    hasFrontlight = yes,
-    hasNaturalLight = yes,
-    hasNaturalLightApi = yes,
-    powerDBackend = require("device/sdl/sdllightpowerd"),
-    lightPowerDConfig = {
-        warm = "sysfs/backlight/backlight_warm",
-        cool = "sysfs/backlight/backlight_cool",
-    },
-    -- TODO: actually test/implement those
-    canRestart = yes,
-    canSuspend = yes,
-    canReboot = yes,
-    canPowerOff = yes,
-    -- NOTE: wifi not = yes, as AFAICT it can't manage the networks.
-}
-
-local UbuntuTouch = SdlDevice:extend{
-    model = "UbuntuTouch",
-    hasFrontlight = yes,
-    isDefaultFullscreen = yes,
-}
-
 function SdlDevice:init()
     -- allows to set a viewport via environment variable
     -- syntax is Lua table syntax, e.g. EMULATE_READER_VIEWPORT="{x=10,w=550,y=5,h=790}"
@@ -378,6 +334,34 @@ end
 
 local Emulator = require("device/sdl/emulator")(SdlDevice)
 
+local Desktop = SdlDevice:extend{
+    model = "Generic (SDL "..SDL.getPlatform()..")",
+    isDesktop = yes,
+    canRestart = notOSX,
+    hasExitOptions = notOSX,
+}
+
+local PineNote = Desktop:extend{
+    model = "PineNote",
+    hasEinkScreen = yes,
+    hasColorScreen = no,
+    -- NOTE: uses SDL.getPowerDevice()
+    hasBattery = yes,
+    hasFrontlight = yes,
+    hasNaturalLight = yes,
+    hasNaturalLightApi = yes,
+    powerDBackend = require("device/sdl/sdllightpowerd"),
+    lightPowerDConfig = {
+        warm = "sysfs/backlight/backlight_warm",
+        cool = "sysfs/backlight/backlight_cool",
+    },
+    -- TODO: actually test/implement those
+    canSuspend = yes,
+    canReboot = yes,
+    canPowerOff = yes,
+    -- NOTE: wifi not = yes, as AFAICT it can't manage the networks.
+}
+
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
 
 -------------- device probe ------------
@@ -408,23 +392,41 @@ if not model and util.fileExists("/proc/device-tree/model") then
 end
 
 if model == nil then
-	model = "(generic)"
+	model = "(Generic Desktop)"
+	-- TODO: change the emulator semantics; emulator should be opt-in with KO_EMULATOR imo.
+	if os.getenv("KO_MULTIUSER") or os.getenv("APPIMAGE") or os.getenv("UBUNTU_APPLICATION_ISOLATION") then
+		model = "(Generic Desktop)"
+	else
+		model = "(Emulator)"
+	end
 end
 
 -- Using JSON.encode here to ensure any control characters gets sussed-out.
 logger.info("  model:", JSON.encode(model))
 
--- TODO: review AppImage/UbuntuTouch such that they compose on top of the selected model.
---       the distribution method shouldn't affect the model detection heuristics.
--- XXX: would AppImage or UbuntuTouch sandbox away the required files?
-if os.getenv("APPIMAGE") then
-    return AppImage
+local device_backend = Desktop
+
+if model == "(Emulator)" then
+	device_backend = Emulator
 elseif model:match("^Pine64 PineNote") then
-    return PineNote
-elseif os.getenv("KO_MULTIUSER") then
-    return Desktop
-elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
-    return UbuntuTouch
-else
-    return Emulator
+	device_backend = PineNote
 end
+
+logger.info("SDL device: Detecting distribution method...")
+if os.getenv("APPIMAGE") then
+	logger.info("  Running as AppImage")
+	return device_backend:extend({
+		model = device_backend.model.." (AppImage)",
+		hasOTAUpdates = yes,
+	})
+elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
+	logger.info("  Running as Ubuntu Application (UbuntuTouch)")
+	return device_backend:extend{
+		model = device_backend.model.." (UbuntuTouch)",
+		isDefaultFullscreen = yes,
+	}
+else
+	logger.info("  (No specific distribution method)")
+end
+
+return device_backend
