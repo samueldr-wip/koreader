@@ -336,7 +336,7 @@ function SdlDevice:init()
     Generic.init(self)
 end
 
-require("device/mixins/clock_hwclock")(SdlDevice)
+require("device/mixins/clock_detect")(SdlDevice)
 
 function SdlDevice:isAlwaysFullscreen()
     -- return true on embedded devices, which should default to fullscreen
