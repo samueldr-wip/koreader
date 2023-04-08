@@ -343,6 +343,9 @@ local Desktop = SdlDevice:extend{
 
 local PineNote = Desktop:extend{
     model = "PineNote",
+    hasKeyboard = no,
+    hasKeys = no,
+    hasDPad = no,
     hasEinkScreen = yes,
     hasColorScreen = no,
     -- NOTE: uses SDL.getPowerDevice()
@@ -359,7 +362,8 @@ local PineNote = Desktop:extend{
     canSuspend = yes,
     canReboot = yes,
     canPowerOff = yes,
-    -- NOTE: wifi not = yes, as AFAICT it can't manage the networks.
+    -- TODO: nmcli NetworkMgr backend
+    -- hasWifiToggle = yes,
 }
 
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
