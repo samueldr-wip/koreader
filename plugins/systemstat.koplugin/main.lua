@@ -28,7 +28,7 @@ function SystemStat:init()
     elseif Device:isKindle() then
         self.storage_filter = "' /mnt/us$'"
     elseif Device:isSDL() then
-        self.storage_filter = "/dev/sd"
+        self.storage_filter = "/dev/"
     end
 
     -- Account for a start-up mid-charge
@@ -246,7 +246,7 @@ function SystemStat:appendStorageInfo()
     if self.storage_filter == nil then return end
 
     local std_out = io.popen(
-        "df -h | sed -r 's/ +/ /g' | grep " .. self.storage_filter ..
+        "df -h | sed -r 's/ +/ /g' | grep -v tmpfs | grep " .. self.storage_filter ..
         " | sed 's/ /\\t/g' | cut -f 2,4,5,6"
     )
     if not std_out then return end
