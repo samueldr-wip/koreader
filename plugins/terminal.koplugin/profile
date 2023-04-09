@@ -51,3 +51,6 @@ fi
 if [ -z "${ANDROID}" ]; then
     echo "You can use shfm as a filemanager, ? shows help in shfm."
 fi
+
+# NixOS workarounds
+unset LD_LIBRARY_PATH
