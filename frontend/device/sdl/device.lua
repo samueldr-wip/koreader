@@ -322,18 +322,6 @@ function SdlDevice:setEventHandlers(UIManager)
     end
 end
 
-function SdlDevice:initNetworkManager(NetworkMgr)
-    function NetworkMgr:isWifiOn() return true end
-    function NetworkMgr:isConnected()
-        -- Pull the default gateway first, so we don't even try to ping anything if there isn't one...
-        local default_gw = SdlDevice:getDefaultRoute()
-        if not default_gw then
-            return false
-        end
-        return 0 == os.execute("ping -c1 -w2 " .. default_gw .. " > /dev/null")
-    end
-end
-
 -- Devices extending SdlDevice
 
 local Emulator = require("device/sdl/emulator")(SdlDevice)
