@@ -277,6 +277,9 @@ end
 
 require("device/mixins/clock_detect")(SdlDevice)
 
+-- Guess at the network backend to use
+require("device/mixins/network_detect")(SdlDevice)
+
 function SdlDevice:isAlwaysFullscreen()
     -- return true on embedded devices, which should default to fullscreen
     return self:isDefaultFullscreen()
@@ -393,8 +396,6 @@ local PineNote = Desktop:extend{
     canReboot = yes,
     canPowerOff = yes,
     canStandby = no,
-    -- TODO: nmcli NetworkMgr backend
-    -- hasWifiToggle = yes,
 }
 
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
