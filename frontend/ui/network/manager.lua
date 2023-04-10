@@ -454,17 +454,6 @@ function NetworkMgr:willRerunWhenConnected(callback)
 end
 
 
-function NetworkMgr:getWifiMenuTable()
-    if Device:isAndroid() then
-        return {
-            text = _("Wi-Fi settings"),
-            callback = function() self:openSettings() end,
-        }
-    else
-        return self:getWifiToggleMenuTable()
-    end
-end
-
 function NetworkMgr:getWifiToggleMenuTable()
     local toggleCallback = function(touchmenu_instance, long_press)
         self:queryNetworkState()
@@ -522,6 +511,20 @@ function NetworkMgr:getWifiToggleMenuTable()
         hold_callback = function(touchmenu_instance)
             toggleCallback(touchmenu_instance, true)
         end,
+    }
+end
+
+function NetworkMgr:getWifiSelectionMenuTable()
+    local cb = function(touchmenu_instance, long_press)
+		-- Fake previous long-press behaviour
+		self.wifi_toggle_long_press = true
+		self:reconnectOrShowNetworkMenu()
+    end
+
+    return {
+        text = _("Select a network"),
+        enabled_func = function() return self:isWifiOn() end,
+        callback = cb,
     }
 end
 
@@ -670,8 +673,14 @@ function NetworkMgr:getDismissScanMenuTable()
 end
 
 function NetworkMgr:getMenuTable(common_settings)
-    if Device:hasWifiToggle() then
-        common_settings.network_wifi = self:getWifiMenuTable()
+    if Device:isAndroid() then
+        return {
+            text = _("Wi-Fi settings"),
+            callback = function() self:openSettings() end,
+        }
+    elseif Device:hasWifiToggle() then
+        common_settings.network_wifi_toggle = self:getWifiToggleMenuTable()
+        common_settings.network_wifi_selection = self:getWifiSelectionMenuTable()
     end
 
     common_settings.network_proxy = self:getProxyMenuTable()

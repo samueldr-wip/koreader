@@ -75,7 +75,8 @@ local order = {
         "opening_page_location_stack",
     },
     network = {
-        "network_wifi",
+        "network_wifi_toggle",
+        "network_wifi_selection",
         "network_proxy",
         "network_powersave",
         "network_restore",

@@ -482,7 +482,7 @@ function NetworkSetting:init()
 
     UIManager:nextTick(function()
         local connected_item = self:getConnectedItem()
-        if connected_item ~= nil then
+        if not self.force_selection and connected_item ~= nil then
             obtainIP()
             if G_reader_settings:nilOrTrue("auto_dismiss_wifi_scan") then
                 UIManager:close(self, "ui", self.dimen)
