@@ -350,6 +350,13 @@ function Desktop:setEventHandlers(UIManager)
 		default_suspend()
 		self:suspend()
 	end
+    UIManager.event_handlers.PowerPress = function()
+        -- TODO: keep track of time to distinguish long/short presses.
+    end
+    UIManager.event_handlers.PowerRelease = function()
+        -- TODO: only if short pressing
+        UIManager:scheduleIn(0.1, self.suspend, self)
+    end
 end
 
 local PineNote = Desktop:extend{
