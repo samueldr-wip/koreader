@@ -326,11 +326,26 @@ end
 
 local Emulator = require("device/sdl/emulator")(SdlDevice)
 
+local function ko_env(name)
+    return function()
+        if os.getenv(name) then
+            return false
+        end
+
+        return notOSX()
+    end
+end
+
 local Desktop = SdlDevice:extend{
     model = "Generic (SDL "..SDL.getPlatform()..")",
     isDesktop = yes,
-    canRestart = notOSX,
-    hasExitOptions = notOSX,
+    hasExitOptions = yes,
+    canExit        = ko_env("KO_NO_EXIT"),
+    canRestart     = ko_env("KO_NO_RESTART"),
+    canSuspend     = ko_env("KO_NO_SUSPEND"),
+    canReboot      = ko_env("KO_NO_REBOOT"),
+    canPowerOff    = ko_env("KO_NO_POWEROFF"),
+    canStandby     = no,
 }
 
 -- TODO: systemctl backend for device state
@@ -380,10 +395,6 @@ local PineNote = Desktop:extend{
         warm = "sysfs/backlight/backlight_warm",
         cool = "sysfs/backlight/backlight_cool",
     },
-    canSuspend = yes,
-    canReboot = yes,
-    canPowerOff = yes,
-    canStandby = no,
 }
 
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
