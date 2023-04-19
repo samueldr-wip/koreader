@@ -242,7 +242,7 @@ local order = {
         "reboot", -- if Device:canReboot()
         "----------------------------",
         "start_bq", -- if Device:isCervantes()
-        "exit",
+        "exit", -- if Device:canExit()
     }
 }
 
