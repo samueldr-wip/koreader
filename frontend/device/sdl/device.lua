@@ -3,8 +3,10 @@ local Generic = require("device/generic/device")
 local SDL = require("ffi/SDL2_0")
 local ffi = require("ffi")
 local logger = require("logger")
+local util = require("util")
 local time = require("ui/time")
 local _ = require("gettext")
+local JSON = require("json")
 
 -- SDL computes WM_CLASS on X11/Wayland based on process's binary name.
 -- Some desktop environments rely on WM_CLASS to name the app and/or to assign the proper icon.
@@ -461,6 +463,22 @@ else
     logger.info("SDL device: Looking for a more specific model...")
 end
 
+-- Linux ARM devices are likely to be using Device Tree.
+if not model and util.fileExists("/proc/device-tree/model") then
+    logger.info("Using device-tree for model detection...")
+    local file, err = io.open("/proc/device-tree/model", "r")
+    if file then
+        -- /proc/device-tree entries end with a NUL byte.
+        -- We need to strip them for easier comparison later.
+        model = file:read("*all"):gsub("%z", "")
+    else
+        logger.err("SDL device: failed to open /proc/device-tree/model", err)
+    end
+end
+
+-- TODO: DMI model detection, if relevant (See /sys/class/dmi/)
+
+-- Still no model? Assume a generic device or the Emulator.
 if model == nil then
     if os.getenv("KO_MULTIUSER") or os.getenv("APPIMAGE") or os.getenv("UBUNTU_APPLICATION_ISOLATION") then
         model = "(Generic Desktop)"
@@ -469,11 +487,16 @@ if model == nil then
     end
 end
 
+-- Using JSON.encode here to ensure any control characters or whitespaces gets printed to the console.
+logger.info("  model:", JSON.encode(model))
+
 -- The actual backend used may be extended by the distribution method in use.
 local device_backend = Desktop
 
 if model == "(Emulator)" then
     device_backend = Emulator
+elseif model ~= "(Generic Desktop)" then
+    logger.info("No device-specific backend for detected model: ", JSON.encode(model))
 end
 
 logger.info("SDL device: Detecting distribution method...")
