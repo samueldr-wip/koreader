@@ -289,6 +289,9 @@ function SDLDevice:setDateTime(year, month, day, hour, min, sec)
     end
 end
 
+-- Guess at the network backend to use
+require("device/mixins/network/detect")(SDLDevice)
+
 function SDLDevice:isAlwaysFullscreen()
     -- return true on embedded devices, which should default to fullscreen
     return self:isDefaultFullscreen()
@@ -302,18 +305,6 @@ function SDLDevice:toggleFullscreen()
         logger.warn("Unable to toggle fullscreen mode to", new_mode, "\n", err)
     else
         self.fullscreen = new_mode
-    end
-end
-
-function SDLDevice:initNetworkManager(NetworkMgr)
-    function NetworkMgr:isWifiOn() return true end
-    function NetworkMgr:isConnected()
-        -- Pull the default gateway first, so we don't even try to ping anything if there isn't one...
-        local default_gw = SDLDevice:getDefaultRoute()
-        if not default_gw then
-            return false
-        end
-        return 0 == os.execute("ping -c1 -w2 " .. default_gw .. " > /dev/null")
     end
 end
 
