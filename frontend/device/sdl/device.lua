@@ -450,6 +450,17 @@ function Desktop:setEventHandlers(UIManager)
     end
 end
 
+local PineNote = Desktop:extend{
+    model = "PineNote",
+    hasKeyboard = no,
+    hasKeys = no,
+    hasDPad = no,
+    hasEinkScreen = yes,
+    hasColorScreen = no,
+    -- NOTE: uses SDL.getPowerDevice()
+    hasBattery = yes,
+}
+
 logger.info("Starting SDL in:", SDL.getBasePath())
 
 -------------- device probe ------------
@@ -495,6 +506,8 @@ local device_backend = Desktop
 
 if model == "(Emulator)" then
     device_backend = Emulator
+elseif model:match("^Pine64 PineNote") then
+    device_backend = PineNote
 elseif model ~= "(Generic Desktop)" then
     logger.info("No device-specific backend for detected model: ", JSON.encode(model))
 end
