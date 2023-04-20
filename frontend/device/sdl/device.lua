@@ -105,26 +105,6 @@ local SDLDevice = Generic:extend{
     window = G_reader_settings:readSetting("sdl_window", {}),
 }
 
-local AppImage = SDLDevice:extend{
-    model = "AppImage",
-    hasMultitouch = no,
-    hasOTAUpdates = yes,
-    isDesktop = yes,
-}
-
-local Desktop = SDLDevice:extend{
-    model = SDL.getPlatform(),
-    isDesktop = yes,
-    canRestart = notOSX,
-    hasExitOptions = notOSX,
-}
-
-local UbuntuTouch = SDLDevice:extend{
-    model = "UbuntuTouch",
-    hasFrontlight = yes,
-    isDefaultFullscreen = yes,
-}
-
 function SDLDevice:init()
     -- allows to set a viewport via environment variable
     -- syntax is Lua table syntax, e.g. EMULATE_READER_VIEWPORT="{x=10,w=550,y=5,h=790}"
@@ -341,12 +321,46 @@ local Emulator = require("device/sdl/emulator")(SDLDevice)
 logger.info("Starting SDL in:", SDL.getBasePath())
 
 -------------- device probe ------------
-if os.getenv("APPIMAGE") then
-    return AppImage
-elseif os.getenv("KO_MULTIUSER") then
-    return Desktop
-elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
-    return UbuntuTouch
+local model = nil
+
+-- Allow overriding the model
+if os.getenv("KO_MODEL") then
+    logger.info("Using KO_MODEL as model...")
+    model = os.getenv("KO_MODEL")
 else
-    return Emulator
+    logger.info("SDL device: Looking for a more specific model...")
 end
+
+if model == nil then
+    if os.getenv("KO_MULTIUSER") or os.getenv("APPIMAGE") or os.getenv("UBUNTU_APPLICATION_ISOLATION") then
+        model = "(Generic Desktop)"
+    else
+        model = "(Emulator)"
+    end
+end
+
+-- The actual backend used may be extended by the distribution method in use.
+local device_backend = SDLDevice
+
+if model == "(Emulator)" then
+    device_backend = Emulator
+end
+
+logger.info("SDL device: Detecting distribution method...")
+if os.getenv("APPIMAGE") then
+    logger.info("  Running as AppImage")
+    return device_backend:extend({
+        model = device_backend.model.." (AppImage)",
+        hasOTAUpdates = yes,
+    })
+elseif os.getenv("UBUNTU_APPLICATION_ISOLATION") then
+    logger.info("  Running as Ubuntu Application (UbuntuTouch)")
+    return device_backend:extend{
+        model = device_backend.model.." (UbuntuTouch)",
+        isDefaultFullscreen = yes,
+    }
+else
+    logger.info("  (No specific distribution method)")
+end
+
+return device_backend
