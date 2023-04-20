@@ -84,4 +84,6 @@ return {
 
     [1073741894] = "PrintScreen",
     [1073741895] = "ScrollLock",
+
+    [1073741926] = "Power",
 }
