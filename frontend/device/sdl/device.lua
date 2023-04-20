@@ -316,7 +316,14 @@ function SDLDevice:initNetworkManager(NetworkMgr)
     end
 end
 
+-- Devices extending SDLDevice
+
 local Emulator = require("device/sdl/emulator")(SDLDevice)
+
+local Desktop = SDLDevice:extend{
+    model = "Generic (SDL "..SDL.getPlatform()..")",
+    isDesktop = yes,
+}
 
 logger.info("Starting SDL in:", SDL.getBasePath())
 
@@ -340,7 +347,7 @@ if model == nil then
 end
 
 -- The actual backend used may be extended by the distribution method in use.
-local device_backend = SDLDevice
+local device_backend = Desktop
 
 if model == "(Emulator)" then
     device_backend = Emulator
