@@ -320,10 +320,54 @@ end
 
 local Emulator = require("device/sdl/emulator")(SDLDevice)
 
+local function ko_env(name, default_fn)
+    return function()
+        if os.getenv(name) then
+            return false
+        end
+
+        return default_fn()
+    end
+end
+
 local Desktop = SDLDevice:extend{
     model = "Generic (SDL "..SDL.getPlatform()..")",
     isDesktop = yes,
+    canExit        = ko_env("KO_NO_EXIT", yes),
+    canRestart     = ko_env("KO_NO_RESTART", notOSX),
+    canSuspend     = ko_env("KO_NO_SUSPEND", notOSX),
+    canReboot      = ko_env("KO_NO_REBOOT", notOSX),
+    canPowerOff    = ko_env("KO_NO_POWEROFF", notOSX),
 }
+
+function Desktop:suspend()
+    os.execute("systemctl suspend")
+end
+
+function Desktop:powerOff()
+    os.execute("systemctl poweroff")
+end
+
+function Desktop:reboot()
+    os.execute("systemctl reboot")
+end
+
+function Desktop:setEventHandlers(UIManager)
+    -- Ensure SDLDevice:setEventHandlers isn't used.
+    Generic.setEventHandlers(self, UIManager)
+    local default_suspend = UIManager.event_handlers.Suspend;
+    UIManager.event_handlers.Suspend = function()
+        default_suspend()
+        self:suspend()
+    end
+    UIManager.event_handlers.PowerPress = function()
+        -- TODO: keep track of time to distinguish long/short presses.
+    end
+    UIManager.event_handlers.PowerRelease = function()
+        -- TODO: only if short pressing
+        UIManager:scheduleIn(0.1, self.suspend, self)
+    end
+end
 
 logger.info("Starting SDL in:", SDL.getBasePath())
 
