@@ -378,46 +378,6 @@ local PineNote = Desktop:extend{
     },
 }
 
--- TODO: EBC screen mixin
-function PineNote:init()
-    Desktop.init(self)
-
-    local DRM_IOCTL_ROCKCHIP_EBC_GLOBAL_REFRESH = 0xC0016440
-    local C = ffi.C
-    -- Actually should be a struct with a single bool member, which is equivalent to this.
-    local true_ptr = ffi.new("bool[1]", true)
-    local ebc_fd = C.open("/dev/dri/by-path/platform-fdec0000.ebc-card", C.O_RDWR)
-
-    local function screen_refresh()
-        if not ebc_fd then
-            logger.warn("PineNote:_screen_refresh: Could not do a screen refresh; no EBC fd opened...")
-            return false
-        end
-        if C.ioctl(ebc_fd, DRM_IOCTL_ROCKCHIP_EBC_GLOBAL_REFRESH, true_ptr) < 0 then
-            local err = ffi.errno()
-            logger.warn("PineNote:_screen_refresh: DRM_IOCTL_ROCKCHIP_EBC_GLOBAL_REFRESH ioctl failed:", ffi.string(C.strerror(err)))
-            return false
-        end
-
-        return true
-    end
-
-    logger.info("Adding support for EBC display ioctls");
-    local original_refreshFullImp = self.screen.refreshFullImp
-    self.screen.refreshFullImp = function(self, x, y, w, h, d)
-        local bb = self.full_bb or self.bb
-        original_refreshFullImp(self, x, y, w, h, d)
-
-        -- Refresh the whole display if we made an actual full display update.
-        -- (This approximately represents a page turn in my limited experience.)
-        if w == bb:getWidth() and h == bb:getHeight() then
-            -- FIXME: this calls the ioctl too soon...
-            -- It should wait until the display has been updated by SDL... how?
-            screen_refresh()
-        end
-    end
-end
-
 io.write("Starting SDL in " .. SDL.getBasePath() .. "\n")
 
 -------------- device probe ------------
