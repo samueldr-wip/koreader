@@ -359,6 +359,13 @@ local PineNote = Desktop:extend{
     hasColorScreen = no,
     -- NOTE: uses SDL.getPowerDevice()
     hasBattery = yes,
+    hasFrontlight = yes,
+    hasNaturalLight = yes,
+    hasNaturalLightApi = yes,
+    frontlight_settings = {
+        frontlight_cool = "/sys/class/backlight/backlight_cool",
+        frontlight_warm = "/sys/class/backlight/backlight_warm",
+    },
 }
 
 logger.info("Starting SDL in:", SDL.getBasePath())
