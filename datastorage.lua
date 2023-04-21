@@ -1,6 +1,7 @@
 -- need low-level mechanism to detect android to avoid recursive dependency
 local isAndroid, android = pcall(require, "android")
 local lfs = require("libs/libkoreader-lfs")
+local util = require("util")
 
 local DataStorage = {}
 
@@ -28,7 +29,7 @@ function DataStorage:getDataDir()
         data_dir = "."
     end
     if lfs.attributes(data_dir, "mode") ~= "directory" then
-        lfs.mkdir(data_dir)
+        util.makePath(data_dir)
     end
 
     return data_dir
@@ -78,7 +79,7 @@ local function initDataDir()
     for _, dir in ipairs(sub_data_dirs) do
         local sub_data_dir = string.format("%s/%s", datadir, dir)
         if lfs.attributes(sub_data_dir, "mode") ~= "directory" then
-            lfs.mkdir(sub_data_dir)
+            util.makePath(sub_data_dir)
         end
     end
 end
