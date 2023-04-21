@@ -372,35 +372,28 @@ function Desktop:setEventHandlers(UIManager)
         if not self._current_power_press then
             self._current_power_press = time.now()
         end
-        -- But if things look *awfully wrong*, reset power button state
-        local press_duration = (time.now() - self._current_power_press) / 1000
-        -- Holding power for 15s is unlikely to be possible.
-        -- It is not our job to handle system reset on long power press.
-        if press_duration > 15000 then
-            logger.warn("Power button detection may be stuck, ignoring current press...")
-            self._current_power_press = nil
-        end
-    end
-    UIManager.event_handlers.PowerRelease = function()
-        if not self._current_power_press then return end
 
         -- In ms, makes the following code easier to grok.
         local press_duration = (time.now() - self._current_power_press) / 1000
-
-        if press_duration > 800 then
+        if press_duration > 1000 and not self._current_power_long_press then
+            self._current_power_long_press = true
             if self.onPowerLongPress then
                 UIManager:nextTick(function()
                     self:onPowerLongPress()
                 end)
             end
-        else
-            if self.onPowerPress then
-                UIManager:nextTick(function()
-                    self:onPowerPress()
-                end)
-            end
+        end
+    end
+    UIManager.event_handlers.PowerRelease = function()
+        if not self._current_power_press then return end
+
+        if not self._current_power_long_press and self.onPowerPress then
+            UIManager:nextTick(function()
+                self:onPowerPress()
+            end)
         end
         self._current_power_press = nil
+        self._current_power_long_press = false
     end
 end
 
