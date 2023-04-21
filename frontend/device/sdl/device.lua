@@ -316,6 +316,8 @@ local Desktop = SDLDevice:extend{
     canSuspend     = ko_env("KO_NO_SUSPEND", notOSX),
     canReboot      = ko_env("KO_NO_REBOOT", notOSX),
     canPowerOff    = ko_env("KO_NO_POWEROFF", notOSX),
+    -- On Linux desktop, different backends can control the backlight or frontlight.
+    hasFrontlight  = notOSX,
 }
 
 function Desktop:suspend()
