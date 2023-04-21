@@ -4,6 +4,7 @@ local SDL = require("ffi/SDL2_0")
 local ffi = require("ffi")
 local logger = require("logger")
 local time = require("ui/time")
+local _ = require("gettext")
 
 -- SDL computes WM_CLASS on X11/Wayland based on process's binary name.
 -- Some desktop environments rely on WM_CLASS to name the app and/or to assign the proper icon.
@@ -357,6 +358,77 @@ function Desktop:onPowerPress()
 end
 
 function Desktop:onPowerLongPress()
+    local UIManager = require("ui/uimanager")
+    local ButtonDialogTitle = require("ui/widget/buttondialogtitle")
+
+    if self._power_menu then
+        UIManager:close(self._power_menu)
+        return
+    end
+
+    buttons = {}
+    if self:canSuspend() then
+        table.insert(buttons, {
+            {
+                text = _("Suspend"),
+                callback = function()
+                    UIManager:nextTick(function()
+                        self:suspend()
+                        UIManager:close(self._power_menu)
+                    end)
+                end,
+            },
+        })
+    end
+    if self:canReboot() then
+        table.insert(buttons, {
+            {
+                text = _("Reboot"),
+                hidden = self:canReboot(),
+                callback = function()
+                    UIManager:nextTick(function()
+                        self:reboot()
+                        UIManager:close(self._power_menu)
+                    end)
+                end,
+            },
+        })
+    end
+    if self:canPowerOff() then
+        table.insert(buttons, {
+            {
+                text = _("Power off"),
+                hidden = self:canPowerOff(),
+                callback = function()
+                    UIManager:nextTick(function()
+                        self:powerOff()
+                        UIManager:close(self._power_menu)
+                    end)
+                end,
+            },
+        })
+    end
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:nextTick(function()
+                    UIManager:close(self._power_menu)
+                end)
+            end,
+        },
+    })
+
+    self._power_menu = ButtonDialogTitle:new{
+        name = "power_menu",
+        title = _("Power Menu"),
+        title_align = "center",
+        buttons = buttons,
+        onCloseWidget = function()
+            self._power_menu = nil
+        end
+    }
+    UIManager:show(self._power_menu)
 end
 
 function Desktop:setEventHandlers(UIManager)
