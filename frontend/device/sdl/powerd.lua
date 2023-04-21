@@ -37,4 +37,4 @@ function SDLPowerD:isChargingHW()
     return false
 end
 
-return SDLPowerD
+return require("device/mixins/powerd/detect")(SDLPowerD)
