@@ -468,6 +468,43 @@ local PineNote = Desktop:extend{
     },
 }
 
+function PineNote:init()
+    Desktop.init(self)
+
+    -- Add a temporary workaround to make full screen refreshes work better.
+    -- The current driver doesn't implement ioctls to ask for specific waveforms and such.
+    -- I'll note that it is possible the SDL implementation may not be suitable once
+    -- such ioctls are available; we'd need to be able to configure the `RenderPresent`
+    -- to send the right information when updating the display.
+    logger.info("Adding quirk for EBC display refresh");
+    local original_refreshFullImp = self.screen.refreshFullImp
+    local function set_diff_mode(value)
+        local value = value or "1"
+        local f = io.open("/sys/module/rockchip_ebc/parameters/diff_mode", "w")
+        if not f then return end
+        f:write(value)
+        f:close()
+    end
+    self.screen.refreshFullImp = function(self, x, y, w, h, d)
+        local bb = self.full_bb or self.bb
+        original_refreshFullImp(self, x, y, w, h, d)
+
+        -- Refresh the whole display if we made an actual full display update.
+        -- (This approximately represents a page turn in my limited experience.)
+        if w == bb:getWidth() and h == bb:getHeight() then
+            local UIManager = require("ui/uimanager")
+
+            -- By the time RenderPresent is called (after this function returns),
+            -- we'll be in diff_mode == 0, so a flashing redraw will be made.
+            set_diff_mode("0")
+            UIManager:unschedule(set_diff_mode)
+            -- Some time after, we'll be back in partial redraw.
+            UIManager:scheduleIn(0.5, set_diff_mode)
+            -- No, this is not good.
+        end
+    end
+end
+
 logger.info("Starting SDL in:", SDL.getBasePath())
 
 -------------- device probe ------------
