@@ -110,7 +110,6 @@ function ReaderUI:init()
     -- cap screen refresh on pan to 2 refreshes per second
     local pan_rate = Screen.low_pan_rate and 2.0 or 30.0
 
-    Input:inhibitInput(true) -- Inhibit any past and upcoming input events.
     Device:setIgnoreInput(true) -- Avoid ANRs on Android with unprocessed events.
 
     self.postInitCallback = {}
@@ -481,7 +480,6 @@ function ReaderUI:init()
     self.postReaderCallback = nil
 
     Device:setIgnoreInput(false) -- Allow processing of events (on Android).
-    Input:inhibitInputUntil(0.2)
 
     -- print("Ordered registered gestures:")
     -- for _, tzone in ipairs(self._ordered_touch_zones) do
@@ -610,7 +608,6 @@ function ReaderUI:showReaderCoroutine(file, provider, seamless)
             io.stderr:write(debug.traceback(co, err, 1))
             -- Restore input if we crashed before ReaderUI has restored it
             Device:setIgnoreInput(false)
-            Input:inhibitInputUntil(0.2)
             UIManager:show(InfoMessage:new{
                 text = _("No reader engine for this file or invalid file.")
             })
