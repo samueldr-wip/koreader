@@ -479,12 +479,28 @@ function PineNote:init()
     logger.info("Adding quirk for EBC display refresh");
     local original_refreshFullImp = self.screen.refreshFullImp
     local function set_diff_mode(value)
-        local value = value or "1"
         local f = io.open("/sys/module/rockchip_ebc/parameters/diff_mode", "w")
         if not f then return end
         f:write(value)
         f:close()
     end
+    -- Unsetting auto-refresh will also reset its counter on next refresh
+    local function set_autorefresh(value)
+        local f = io.open("/sys/module/rockchip_ebc/parameters/auto_refresh", "w")
+        if not f then return end
+        f:write(value)
+        f:close()
+    end
+    local previous_refresh_value = nil
+    local function reset_config()
+        set_diff_mode("1")
+        -- Assume we want autorefresh on if for some reason we couldn't read what it was set to.
+        if not previous_refresh_value then
+            previous_refresh_value = "1"
+        end
+        set_autorefresh(previous_refresh_value)
+    end
+
     self.screen.refreshFullImp = function(self, x, y, w, h, d)
         local bb = self.full_bb or self.bb
         original_refreshFullImp(self, x, y, w, h, d)
@@ -494,12 +510,22 @@ function PineNote:init()
         if w == bb:getWidth() and h == bb:getHeight() then
             local UIManager = require("ui/uimanager")
 
+            local f = io.open("/sys/module/rockchip_ebc/parameters/auto_refresh", "r")
+            if f then
+                previous_refresh_value = util.trim(f:read("*all"))
+                f:close()
+            end
+
             -- By the time RenderPresent is called (after this function returns),
             -- we'll be in diff_mode == 0, so a flashing redraw will be made.
             set_diff_mode("0")
-            UIManager:unschedule(set_diff_mode)
+            -- Temporarily reset autorefresh too
+            set_autorefresh("0")
+
+            -- De-queue previously scheduled reset, if any
+            UIManager:unschedule(reset_config)
             -- Some time after, we'll be back in partial redraw.
-            UIManager:scheduleIn(0.5, set_diff_mode)
+            UIManager:scheduleIn(0.5, reset_config)
             -- No, this is not good.
         end
     end
